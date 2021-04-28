@@ -1,2 +1,2 @@
-# ChannelUtils
-Some utils for c# channels
+# Utils
+Some utils for c# channels and httpClient
