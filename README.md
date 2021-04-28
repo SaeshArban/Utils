@@ -49,10 +49,10 @@ produces
 
 ```c#
 serviceCollection
-				.AddRateLimiter<ITest>(serviceProvider => 3)
-				.AddRefitClient<ITest>()
-				.ConfigureHttpClient(c => { c.BaseAddress = new Uri("https://google.com/"); })
-				.AddHttpMessageHandler<ChangeableRateLimiterHandler<ITest>>();
+	.AddRateLimiter<ITest>(serviceProvider => 3)
+	.AddRefitClient<ITest>()
+	.ConfigureHttpClient(c => { c.BaseAddress = new Uri("https://google.com/"); })
+	.AddHttpMessageHandler<ChangeableRateLimiterHandler<ITest>>();
 ```
 
 ### Change max rps
