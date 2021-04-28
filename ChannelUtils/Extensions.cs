@@ -348,7 +348,18 @@ namespace ChannelUtils
 		/// <param name="data"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public static ChannelReader<T> Flatten<T>(this ChannelReader<IReadOnlyCollection<T>> data)
+		public static ChannelReader<T>[] Flatten<T>(this ChannelReader<IEnumerable<T>>[] data)
+		{
+			return data.Select(Flatten).ToArray();
+		}
+
+		/// <summary>
+		/// Flattens the sequences from input channel into one sequence into resulting channel
+		/// </summary>
+		/// <param name="data"></param>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public static ChannelReader<T> Flatten<T>(this ChannelReader<IEnumerable<T>> data)
 		{
 			var ch = Channel.CreateUnbounded<T>(new UnboundedChannelOptions
 			{

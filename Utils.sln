@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpClientUtils", "HttpClie
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpClientUtilsExample", "HttpClientUtilsExample\HttpClientUtilsExample.csproj", "{4CD23F1E-D3C5-4074-AB97-1E9B629627B3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChannelExtensionExamples", "ChannelExtensionExamples\ChannelExtensionExamples.csproj", "{264CC961-250F-40AD-B27B-435D5630073D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{4CD23F1E-D3C5-4074-AB97-1E9B629627B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4CD23F1E-D3C5-4074-AB97-1E9B629627B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4CD23F1E-D3C5-4074-AB97-1E9B629627B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{264CC961-250F-40AD-B27B-435D5630073D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{264CC961-250F-40AD-B27B-435D5630073D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{264CC961-250F-40AD-B27B-435D5630073D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{264CC961-250F-40AD-B27B-435D5630073D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
