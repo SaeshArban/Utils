@@ -43,7 +43,7 @@ namespace ChannelUtils
 		/// <param name="count"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public static ChannelReader<IReadOnlyCollection<T>> Combine<T>(
+		public static ChannelReader<IReadOnlyCollection<T>> CreateChunks<T>(
 			this ChannelReader<T> data,
 			int count)
 		{
@@ -92,6 +92,23 @@ namespace ChannelUtils
 			});
 
 			return ch.Reader;
+		}
+
+		/// <summary>
+		/// We transform the data in the channels and send it to a new
+		/// </summary>
+		/// <param name="data"></param>
+		/// <param name="transform"></param>
+		/// <param name="exceptionalChannel"></param>
+		/// <typeparam name="TInput"></typeparam>
+		/// <typeparam name="TOutput"></typeparam>
+		/// <returns></returns>
+		public static ChannelReader<TOutput>[] Transform<TInput, TOutput>(
+			this ChannelReader<TInput>[] data,
+			Func<TInput, TOutput> transform,
+			ChannelWriter<DataProcessException>? exceptionalChannel = null)
+		{
+			return data.Select(x => x.Transform(transform, exceptionalChannel)).ToArray();
 		}
 
 		/// <summary>
@@ -166,6 +183,60 @@ namespace ChannelUtils
 		}
 
 		/// <summary>
+		///  We transform the data in the channel and send it to a new one
+		/// </summary>
+		/// <param name="data"></param>
+		/// <param name="transform"></param>
+		/// <param name="exceptionalChannel"></param>
+		/// <typeparam name="TInput"></typeparam>
+		/// <typeparam name="TOutput"></typeparam>
+		/// <returns></returns>
+		public static ChannelReader<TOutput> Transform<TInput, TOutput>(
+			this ChannelReader<TInput> data,
+			Func<TInput, TOutput> transform,
+			ChannelWriter<DataProcessException>? exceptionalChannel = null)
+		{
+			var ch = Channel.CreateUnbounded<TOutput>(new UnboundedChannelOptions
+			{
+				AllowSynchronousContinuations = true
+			});
+
+			Task.Run(async () =>
+			{
+				while (await data.WaitToReadAsync())
+				{
+					if (!data.TryRead(out var channelData)) continue;
+					try
+					{
+						var result = transform(channelData);
+						if (result is null)
+						{
+							continue;
+						}
+
+						await ch.Writer.WriteAsync(result);
+					}
+					catch (DataProcessException processException) when (exceptionalChannel != null)
+					{
+						await exceptionalChannel.WriteAsync(processException);
+					}
+					catch (Exception exception) when (exceptionalChannel != null)
+					{
+						await exceptionalChannel.WriteAsync(new DataProcessException(exception));
+					}
+					catch
+					{
+						// ignored
+					}
+				}
+
+				ch.Writer.Complete();
+			});
+
+			return ch.Reader;
+		}
+
+		/// <summary>
 		/// We process the data in the channels and send it into new
 		/// </summary>
 		/// <param name="data"></param>
@@ -179,6 +250,22 @@ namespace ChannelUtils
 			ChannelWriter<DataProcessException>? exceptionalChannel = null)
 		{
 			return data.Select(x => x.Process(asyncAction, exceptionalChannel)).ToArray();
+		}
+
+		/// <summary>
+		/// We process the data in the channels and send it into new
+		/// </summary>
+		/// <param name="data"></param>
+		/// <param name="action"></param>
+		/// <param name="exceptionalChannel"></param>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public static ChannelReader<T>[] Process<T>(
+			this ChannelReader<T>[] data,
+			Action<T> action,
+			ChannelWriter<DataProcessException>? exceptionalChannel = null)
+		{
+			return data.Select(x => x.Process(action, exceptionalChannel)).ToArray();
 		}
 
 		/// <summary>
@@ -230,6 +317,54 @@ namespace ChannelUtils
 		}
 
 		/// <summary>
+		/// We process the data in the channel and send it into new one
+		/// </summary>
+		/// <param name="data"></param>
+		/// <param name="action"></param>
+		/// <param name="exceptionalChannel"></param>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public static ChannelReader<T> Process<T>(
+			this ChannelReader<T> data,
+			Action<T> action,
+			ChannelWriter<DataProcessException>? exceptionalChannel = null)
+		{
+			var ch = Channel.CreateUnbounded<T>(new UnboundedChannelOptions
+			{
+				AllowSynchronousContinuations = true
+			});
+
+			Task.Run(async () =>
+			{
+				while (await data.WaitToReadAsync())
+				{
+					if (!data.TryRead(out var channelData)) continue;
+					try
+					{
+						action(channelData);
+						await ch.Writer.WriteAsync(channelData);
+					}
+					catch (DataProcessException processException) when (exceptionalChannel != null)
+					{
+						await exceptionalChannel.WriteAsync(processException);
+					}
+					catch (Exception exception) when (exceptionalChannel != null)
+					{
+						await exceptionalChannel.WriteAsync(new DataProcessException(exception));
+					}
+					catch
+					{
+						// ignored
+					}
+				}
+
+				ch.Writer.Complete();
+			});
+
+			return ch.Reader;
+		}
+
+		/// <summary>
 		/// The last action on the channels data
 		/// </summary>
 		/// <param name="data"></param>
@@ -243,6 +378,22 @@ namespace ChannelUtils
 			ChannelWriter<DataProcessException>? exceptionalChannel = null)
 		{
 			return data.Select(x => x.Action(asyncAction, exceptionalChannel)).ToArray();
+		}
+
+		/// <summary>
+		/// The last action on the channels data
+		/// </summary>
+		/// <param name="data"></param>
+		/// <param name="action"></param>
+		/// <param name="exceptionalChannel"></param>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public static Task[] Action<T>(
+			this ChannelReader<T>[] data,
+			Action<T> action,
+			ChannelWriter<DataProcessException>? exceptionalChannel = null)
+		{
+			return data.Select(x => x.Action(action, exceptionalChannel)).ToArray();
 		}
 
 		/// <summary>
@@ -284,6 +435,44 @@ namespace ChannelUtils
 		}
 
 		/// <summary>
+		/// The last action on the channel data
+		/// </summary>
+		/// <param name="data"></param>
+		/// <param name="action"></param>
+		/// <param name="exceptionalChannel"></param>
+		/// <typeparam name="T"></typeparam>
+		/// <returns></returns>
+		public static Task Action<T>(
+			this ChannelReader<T> data,
+			Action<T> action,
+			ChannelWriter<DataProcessException>? exceptionalChannel = null)
+		{
+			return Task.Run(async () =>
+			{
+				while (await data.WaitToReadAsync())
+				{
+					if (!data.TryRead(out var channelData)) continue;
+					try
+					{
+						action(channelData);
+					}
+					catch (DataProcessException processException) when (exceptionalChannel != null)
+					{
+						await exceptionalChannel.WriteAsync(processException);
+					}
+					catch (Exception exception) when (exceptionalChannel != null)
+					{
+						await exceptionalChannel.WriteAsync(new DataProcessException(exception));
+					}
+					catch
+					{
+						// ignored
+					}
+				}
+			});
+		}
+
+		/// <summary>
 		/// We created <see cref="n"/> new channels and send to it all data from
 		/// <see cref="inputChannel"/> by round robin strategy
 		/// </summary>
@@ -291,7 +480,7 @@ namespace ChannelUtils
 		/// <param name="n"></param>
 		/// <typeparam name="T"></typeparam>
 		/// <returns></returns>
-		public static ChannelReader<T>[] Split<T>(this ChannelReader<T> inputChannel, int n)
+		public static ChannelReader<T>[] InParallel<T>(this ChannelReader<T> inputChannel, int n)
 		{
 			var outputs = new Channel<T>[n];
 

@@ -58,7 +58,7 @@ namespace HttpClientUtilsExample
 
 						Console.WriteLine(i);
 					});
-			Task.WaitAll(tasks.ToArray());
+			await Task.WhenAll(tasks.ToArray());
 		}
 	}
 }
