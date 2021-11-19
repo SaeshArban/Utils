@@ -6,42 +6,42 @@
 - ChangeableSemaphoreSlim
 - ChangeableRateLimiterHandler for httpClient
 
-
 ## Channel extensions usage
 
 ```c#
 var errorChannel = Channel.CreateUnbounded<DataProcessException>();
 
 var errorHandlingTask = errorChannel.Reader
-	.Action(exception =>
-	{
-		Console.WriteLine($"Exception! {exception.Message}");
-		return Task.CompletedTask;
-	});
+    .Action(exception =>
+    {
+        Console.WriteLine($"Exception! {exception.Message}");
+        return Task.CompletedTask;
+    });
 
 await Enumerable
-	.Range(0, 10)
-	.Create()
-	.Transform(async x => Enumerable.Range(x * 10, x + 10))
-	.Split(30) // equals then 30 threads
-	.Flatten()
-	.Transform(async x =>
-		{
-			Console.WriteLine(x);
-			return x.ToString();
-		},
-		errorChannel)
-	.Process(s =>
-		{
-			if (s.Length < 2)
-			{
-				throw new Exception(s);
-			}
-				return Task.CompletedTask;
-		},
-		errorChannel)
-	.Merge()
-	.Action(x => Task.CompletedTask);
+    .Range(0, 10)
+    .Create()
+    .Transform(x => Enumerable.Range(x * 10, x + 10))
+    .InParallel(30) // equals then 30 threads
+    .Flatten()
+    .Transform(x =>
+        {
+            Console.WriteLine(x);
+            return x.ToString();
+        },
+        errorChannel)
+    .Process(s =>
+        {
+            if (s.Length < 2)
+            {
+                throw new Exception(s);
+            }
+
+            return Task.CompletedTask;
+        },
+        errorChannel)
+    .Merge()
+    .Action(x => Task.CompletedTask);
 
 await errorHandlingTask;
 ```
@@ -65,7 +65,9 @@ Exception! 1
 52
 ....
 ```
+
 ## RateLimiter usage
+
 ### Add to http client
 
 ```c#
@@ -77,6 +79,7 @@ serviceCollection
 ```
 
 ### Change max rps
+
 ``` c#
 var rateLimiter = provider.GetService<ChangeableRateLimiterHandler<ITest>>()
 			                  ?? throw new NullReferenceException();
